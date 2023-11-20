@@ -9,11 +9,13 @@ let rec lex lexbuf tokens =
 ;;
 
 let repl =
-  print_string "> ";
-  flush stdout;
-  let lexbuf = Lexing.from_channel stdin in
-  let tokens = Queue.create () in
-  lex lexbuf tokens;
-  try Parser.parse_top tokens with
-  | Failure e -> print_endline e
+  while true do
+    print_string "> ";
+    flush stdout;
+    let lexbuf = Lexing.from_channel stdin in
+    let tokens = Queue.create () in
+    lex lexbuf tokens;
+    try Parser.parse_top tokens with
+    | Failure e -> print_endline e
+  done
 ;;

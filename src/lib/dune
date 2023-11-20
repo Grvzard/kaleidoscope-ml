@@ -1,4 +1,5 @@
 (ocamllex lexer)
 
 (library
- (name kaleidoscope))
+ (name kaleidoscope)
+ (libraries llvm llvm.analysis))

@@ -148,12 +148,12 @@ and parse_top tokens =
   | Some Token.Eof -> ()
   | Some Token.Semicolon -> ()
   | Some Token.Def ->
-    ignore (parse_definition tokens);
+    Llvm.dump_value (Codegen.function_codegen (parse_definition tokens));
     print_endline "Parsed a function definition."
   | Some Token.Extern ->
-    ignore (parse_extern tokens);
+    Llvm.dump_value (Codegen.prototype_codegen (parse_extern tokens));
     print_endline "Parsed an extern."
   | _ ->
-    ignore (parse_top_level tokens);
+    Llvm.dump_value (Codegen.function_codegen (parse_top_level tokens));
     print_endline "Parsed a top-level expr."
 ;;
