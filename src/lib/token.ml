@@ -15,7 +15,18 @@ type t =
 
 let string_of_token (token : t) =
   match token with
+  | Eof -> "eof"
+  | Def -> "def"
+  | Extern -> "extern"
+  | LParen -> "("
+  | RParen -> ")"
+  | Comma -> ","
+  | Semicolon -> ";"
+  | Plus -> "+"
+  | Minus -> "-"
+  | Star -> "*"
+  | Less -> "<"
   | Identifier id -> "Identifier<" ^ id ^ ">"
   | Number n -> "Number<" ^ string_of_float n ^ ">"
-  | _ -> "etc."
+  (* | _ -> "{unnamed token}" *)
 ;;

@@ -8,6 +8,7 @@ let context_ = global_context ()
 let builder_ = builder context_
 let module_ = create_module context_ "TheModule"
 let named_tuple : (string, llvalue) Hashtbl.t = Hashtbl.create ~random:true 8
+let llt_double = double_type context_
 
 let proto_args_check params_arr params_list =
   if Array.length params_arr <> List.length params_list
@@ -20,7 +21,7 @@ let proto_args_check params_arr params_list =
 ;;
 
 let rec expr_codegen = function
-  | NumberExpr n -> const_float (float_type context_) n
+  | NumberExpr n -> const_float llt_double n
   | VariableExpr varname ->
     (match Hashtbl.find_opt named_tuple varname with
      | Some var -> var
@@ -34,7 +35,7 @@ let rec expr_codegen = function
      | Multiply -> build_fmul l r "multmp" builder_
      | Less ->
        let l' = build_fcmp Fcmp.Ult l r "cmptmp" builder_ in
-       build_uitofp l' (double_type context_) "booltmp" builder_)
+       build_uitofp l' llt_double "booltmp" builder_)
   | CallExpr (callee, args) ->
     (match lookup_function callee module_ with
      | None -> raise (CodegenFailure "Unknown function referenced")
@@ -48,8 +49,8 @@ let rec expr_codegen = function
 
 let prototype_codegen = function
   | Prototype (name, args) ->
-    let doubles = Array.make (List.length args) (double_type context_) in
-    let ft = function_type (double_type context_) doubles in
+    let doubles = Array.make (List.length args) llt_double in
+    let ft = function_type llt_double doubles in
     let f = declare_function name ft module_ in
     let assign_name argnames arg =
       match argnames with
@@ -87,6 +88,7 @@ let function_codegen = function
         else raise (CodegenFailure "function verification failed")
       with
       | e ->
+        dump_value (llfunc_);
         delete_function llfunc_;
         raise e)
 ;;

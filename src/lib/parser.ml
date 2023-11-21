@@ -1,9 +1,14 @@
-exception ParseFailue
+exception ParseFailue of string
 
 let consume_token (token : Token.t) tokens =
   match Queue.take_opt tokens with
-  | Some t -> if t = token then () else raise ParseFailue
-  | None -> raise ParseFailue
+  | Some t ->
+    if t = token
+    then ()
+    else
+      raise (ParseFailue (Printf.sprintf "Expected '%s'" (Token.string_of_token token)))
+  | None ->
+    raise (ParseFailue (Printf.sprintf "Expected '%s'" (Token.string_of_token token)))
 ;;
 
 let binop_precedence token =
@@ -32,11 +37,8 @@ let binop_of_token token =
 (* numberexpr ::= number *)
 let rec parse_number tokens =
   match Queue.take_opt tokens with
-  | Some t ->
-    (match t with
-     | Token.Number n -> Ast.NumberExpr n
-     | _ -> raise ParseFailue)
-  | None -> raise ParseFailue
+  | Some (Token.Number n) -> Ast.NumberExpr n
+  | _ -> assert false
 
 (* parenexpr ::= '(' expression ')' *)
 and parse_paren tokens =
@@ -55,19 +57,25 @@ and parse_comma_separated_exprs tokens =
 
 (* identifierexpr
    ::= identifier
-   ::= identifier '(' (expression (',' expression)* )* ')' *)
+   ::= identifier '(' (expression (',' expression)* )? ')' *)
 and parse_identifier tokens =
   let open Ast in
   match Queue.take_opt tokens with
   | Some (Token.Identifier id) ->
     (match Queue.peek_opt tokens with
      | Some Token.LParen ->
-       let exprs = parse_comma_separated_exprs tokens in
-       (match Queue.take_opt tokens with
-        | Some Token.RParen -> CallExpr (id, exprs)
-        | _ -> raise ParseFailue)
+       (* eat '(' *)
+       ignore (Queue.pop tokens);
+       let exprs =
+         match Queue.peek_opt tokens with
+         | Some Token.RParen -> []
+         | Some _ -> parse_comma_separated_exprs tokens
+         | None -> raise (Failure "Expect more tokens when parsing a function call.")
+       in
+       consume_token Token.RParen tokens;
+       CallExpr (id, exprs)
      | _ -> VariableExpr id)
-  | _ -> raise ParseFailue
+  | _ -> assert false
 
 (* primary
    ::= identifierexpr
@@ -78,7 +86,13 @@ and parse_primary tokens =
   | Some (Token.Identifier _) -> parse_identifier tokens
   | Some (Token.Number _) -> parse_number tokens
   | Some Token.LParen -> parse_paren tokens
-  | _ -> raise ParseFailue
+  | Some t ->
+    raise
+      (ParseFailue
+         (Printf.sprintf
+            "unknown token '%s' when expecting an expression."
+            (Token.string_of_token t)))
+  | None -> raise (ParseFailue "no tokens when expecting an expression")
 
 (* binop_rhs ::= binop primary *)
 and parse_binop_rhs prec lhs tokens =
@@ -99,8 +113,8 @@ and parse_binop_rhs prec lhs tokens =
           else rhs
         in
         BinaryExpr (binop_of_token binop_token, lhs, rhs')
-      | None -> raise ParseFailue)
-  | None -> raise ParseFailue
+      | None -> raise (ParseFailue "Expect a expression after a binary operator."))
+  | None -> raise (ParseFailue "Expect some tokens after a primary epxression.")
 
 (* expression ::= primary (binoprhs)* *)
 and parse_expr tokens =
@@ -122,7 +136,7 @@ and parse_prototype tokens =
     let args = parse_ids tokens in
     consume_token Token.RParen tokens;
     Ast.Prototype (id, args)
-  | _ -> raise ParseFailue
+  | _ -> raise (ParseFailue "Expected function name in prototype")
 
 (* definition ::= 'def' prototype expression *)
 and parse_definition tokens =
