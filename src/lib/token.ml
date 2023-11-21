@@ -2,6 +2,12 @@ type t =
   | Eof
   | Def
   | Extern
+  | If
+  | Then
+  | Else
+  | For
+  | In
+  | Equal
   | Identifier of string
   | Number of float
   | LParen
@@ -18,6 +24,12 @@ let string_of_token (token : t) =
   | Eof -> "eof"
   | Def -> "def"
   | Extern -> "extern"
+  | If -> "if"
+  | Then -> "then"
+  | Else -> "else"
+  | For -> "for"
+  | In -> "in"
+  | Equal -> "="
   | LParen -> "("
   | RParen -> ")"
   | Comma -> ","

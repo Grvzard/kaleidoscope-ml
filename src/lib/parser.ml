@@ -86,6 +86,8 @@ and parse_primary tokens =
   | Some (Token.Identifier _) -> parse_identifier tokens
   | Some (Token.Number _) -> parse_number tokens
   | Some Token.LParen -> parse_paren tokens
+  | Some Token.If -> parse_if tokens
+  | Some Token.For -> parse_for tokens
   | Some t ->
     raise
       (ParseFailue
@@ -149,6 +151,37 @@ and parse_definition tokens =
 and parse_extern tokens =
   consume_token Token.Extern tokens;
   parse_prototype tokens
+
+(* ifexpr ::= 'if' expression 'then' expression 'else' expression *)
+and parse_if tokens =
+  consume_token Token.If tokens;
+  let cond_ = parse_expr tokens in
+  consume_token Token.Then tokens;
+  let then_ = parse_expr tokens in
+  consume_token Token.Else tokens;
+  let else_ = parse_expr tokens in
+  Ast.IfExpr (cond_, then_, else_)
+
+(* forexpr ::= 'for' identifier '=' expr ',' expr (',' expr)? 'in' expression *)
+and parse_for tokens =
+  consume_token Token.For tokens;
+  match Queue.take_opt tokens with
+  | Some (Token.Identifier id) ->
+    consume_token Token.Equal tokens;
+    let start_ = parse_expr tokens in
+    consume_token Token.Comma tokens;
+    let end_ = parse_expr tokens in
+    let step_ =
+      match Queue.peek_opt tokens with
+      | Some Token.Comma ->
+        ignore (Queue.pop tokens);
+        Some (parse_expr tokens)
+      | _ -> None
+    in
+    consume_token Token.In tokens;
+    let body_ = parse_expr tokens in
+    Ast.ForExpr (id, start_, end_, step_, body_)
+  | _ -> raise (ParseFailue "expected identifier after for")
 
 (* toplevelexpr ::= expression *)
 and parse_top_level tokens =

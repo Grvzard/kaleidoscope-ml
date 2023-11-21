@@ -10,6 +10,12 @@ rule tokenize = parse
   | '#' { comment lexbuf }
   | "def" { Some Token.Def }
   | "extern" { Some Token.Extern }
+  | "if" { Some Token.If }
+  | "then" { Some Token.Then }
+  | "else" { Some Token.Else }
+  | "for" { Some Token.For }
+  | "in" { Some Token.In }
+  | '=' { Some Token.Equal }
   | '(' { Some Token.LParen }
   | ')' { Some Token.RParen }
   | ',' { Some Token.Comma }
