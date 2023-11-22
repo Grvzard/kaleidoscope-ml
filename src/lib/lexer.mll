@@ -1,3 +1,16 @@
+{
+  let id_token_map = Hashtbl.create 8
+  let _ =
+    List.iter (fun (id, tok) -> Hashtbl.add id_token_map id tok)
+              [ "def", Token.Def;
+                "extern", Token.Extern;
+                "if", Token.If;
+                "then", Token.Then;
+                "else", Token.Else;
+                "for", Token.For;
+                "in", Token.In;
+              ]
+}
 (* let number = /-?\d+(\.\d+)?/ *)
 let number = ['0'-'9']['0'-'9']* ('.'['0'-'9']+)?
 let neg_number = '-' number
@@ -8,19 +21,15 @@ rule tokenize = parse
   | white { tokenize lexbuf }
   | '\n' { tokenize lexbuf }
   | '#' { comment lexbuf }
-  | "def" { Some Token.Def }
-  | "extern" { Some Token.Extern }
-  | "if" { Some Token.If }
-  | "then" { Some Token.Then }
-  | "else" { Some Token.Else }
-  | "for" { Some Token.For }
-  | "in" { Some Token.In }
   | '=' { Some Token.Equal }
   | '(' { Some Token.LParen }
   | ')' { Some Token.RParen }
   | ',' { Some Token.Comma }
   | ';' { Some Token.Semicolon }
-  | identifier as id { Some (Token.Identifier id) }
+  | identifier as id {
+    match Hashtbl.find_opt id_token_map id with
+    | Some t -> Some t
+    | None -> Some (Token.Identifier id) }
   | number as n { Some (Token.Number (float_of_string n)) }
   (* | '(' (neg_number as n) ')' { Some (Token.Number (float_of_string n)) } *)
   | '+' { Some Token.Plus }
