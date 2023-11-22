@@ -1,5 +1,5 @@
 {
-  let id_token_map = Hashtbl.create 8
+  let id_token_map = Hashtbl.create 16
   let _ =
     List.iter (fun (id, tok) -> Hashtbl.add id_token_map id tok)
               [ "def", Token.Def;
@@ -9,6 +9,8 @@
                 "else", Token.Else;
                 "for", Token.For;
                 "in", Token.In;
+                "binary", Token.Binary;
+                "Unary", Token.Unary;
               ]
 }
 (* let number = /-?\d+(\.\d+)?/ *)
@@ -37,6 +39,7 @@ rule tokenize = parse
   | '*' { Some Token.Star }
   (* | '/' { Some Token.Slash } *)
   | '<' { Some Token.Less }
+  | _ as c { Some (Token.AnyChar c) }
   | eof  { Some Token.Eof }
 
 and comment = parse

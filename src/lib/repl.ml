@@ -15,7 +15,11 @@ let repl =
     let lexbuf = Lexing.from_channel stdin in
     let tokens = Queue.create () in
     lex lexbuf tokens;
-    try Parser.parse_top tokens with
+    try Parser.parse_top (Queue.copy tokens) with
+    | Parser.ParseFailure e ->
+      print_endline e;
+      print_endline "[Tokens dump]:";
+      Queue.iter (fun t -> print_endline (Token.string_of_token t)) tokens
     | Failure e -> print_endline e
   done
 ;;

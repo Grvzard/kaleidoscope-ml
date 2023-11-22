@@ -32,12 +32,25 @@ let rec expr_codegen = function
     let l = expr_codegen lhs in
     let r = expr_codegen rhs in
     (match op with
-     | Plus -> build_fadd l r "addtmp" builder_
-     | Minus -> build_fsub l r "subtmp" builder_
-     | Multiply -> build_fmul l r "multmp" builder_
-     | Less ->
+     | Op_prec.OpS _ -> assert false
+     | Op_prec.OpC '+' -> build_fadd l r "addtmp" builder_
+     | Op_prec.OpC '-' -> build_fsub l r "subtmp" builder_
+     | Op_prec.OpC '*' -> build_fmul l r "multmp" builder_
+     | Op_prec.OpC '<' ->
        let l' = build_fcmp Fcmp.Ult l r "cmptmp" builder_ in
-       build_uitofp l' llt_double "booltmp" builder_)
+       build_uitofp l' llt_double "booltmp" builder_
+     | Op_prec.OpC c ->
+       (match lookup_function (Utils.cat_str_char "binary" c) module_ with
+        | Some llfunc_ -> build_call llfunc_ [| l; r |] "binop" builder_
+        (* | None -> raise (CodegenFailure "binary operator not found!"))) *)
+        | None -> assert false))
+  | UnaryExpr (OpS _, _) -> assert false
+  | UnaryExpr (OpC c, operand) ->
+    let operand_v = expr_codegen operand in
+    (match lookup_function (Utils.cat_str_char "unary" c) module_ with
+     | Some llfunc_ -> build_call llfunc_ [| operand_v |] "unop" builder_
+     (* | None -> raise (CodegenFailure "Unknown unary operator"))) *)
+     | None -> assert false)
   | CallExpr (callee, args) ->
     (match lookup_function callee module_ with
      | None -> raise (CodegenFailure "Unknown function referenced")
@@ -104,7 +117,7 @@ let rec expr_codegen = function
 ;;
 
 let prototype_codegen = function
-  | Prototype (name, args) ->
+  | Prototype (name, args, _) ->
     let doubles = Array.make (List.length args) llt_double in
     let ft = function_type llt_double doubles in
     let f = declare_function name ft module_ in
@@ -120,31 +133,32 @@ let prototype_codegen = function
 ;;
 
 let function_codegen = function
-  | Function ((Prototype (name, args) as proto), body) ->
+  | Function ((Prototype (name_, params_, _prec_opt) as proto), body) ->
     let llfunc_ =
-      match lookup_function name module_ with
+      match lookup_function name_ module_ with
       | Some llfunc_ ->
-        if proto_args_check (params llfunc_) args
+        if proto_args_check (params llfunc_) params_
         then llfunc_
         else raise (CodegenFailure "Unknown variable name.")
       | None -> prototype_codegen proto
     in
     if Array.length (basic_blocks llfunc_) <> 0
-    then raise (Failure "Function cannot be redefined.")
-    else (
-      let bb = append_block context_ "entry" llfunc_ in
-      position_at_end bb builder_;
-      Hashtbl.clear named_tuple;
-      Array.iter (fun p -> Hashtbl.replace named_tuple (value_name p) p) (params llfunc_);
-      try
-        let ret_val = expr_codegen body in
-        ignore (build_ret ret_val builder_);
-        if verify_function llfunc_
-        then llfunc_
-        else raise (CodegenFailure "function verification failed")
-      with
-      | e ->
-        dump_value llfunc_;
-        delete_function llfunc_;
-        raise e)
+    then raise (Failure "Function cannot be redefined.");
+    if is_binary_op proto
+    then Op_prec.set (Op_prec.OpC (get_operator_name proto)) (get_binary_precedence proto);
+    let bb = append_block context_ "entry" llfunc_ in
+    position_at_end bb builder_;
+    Hashtbl.clear named_tuple;
+    Array.iter (fun p -> Hashtbl.replace named_tuple (value_name p) p) (params llfunc_);
+    (try
+       let ret_val = expr_codegen body in
+       ignore (build_ret ret_val builder_);
+       if verify_function llfunc_
+       then llfunc_
+       else raise (CodegenFailure "function verification failed")
+     with
+     | e ->
+       dump_value llfunc_;
+       delete_function llfunc_;
+       raise e)
 ;;

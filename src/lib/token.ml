@@ -7,6 +7,8 @@ type t =
   | Else
   | For
   | In
+  | Binary
+  | Unary
   | Equal
   | Identifier of string
   | Number of float
@@ -18,6 +20,7 @@ type t =
   | Minus
   | Star
   | Less
+  | AnyChar of char
 
 let string_of_token (token : t) =
   match token with
@@ -29,6 +32,8 @@ let string_of_token (token : t) =
   | Else -> "else"
   | For -> "for"
   | In -> "in"
+  | Binary -> "binary"
+  | Unary -> "unary"
   | Equal -> "="
   | LParen -> "("
   | RParen -> ")"
@@ -38,7 +43,7 @@ let string_of_token (token : t) =
   | Minus -> "-"
   | Star -> "*"
   | Less -> "<"
+  | AnyChar c -> Printf.sprintf "Char<%c>" c
   | Identifier id -> "Identifier<" ^ id ^ ">"
   | Number n -> "Number<" ^ string_of_float n ^ ">"
-  (* | _ -> "{unnamed token}" *)
 ;;
