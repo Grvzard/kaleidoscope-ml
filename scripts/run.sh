@@ -1,0 +1,1 @@
+opam exec -- dune exec src/kaleidoscope.exe

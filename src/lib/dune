@@ -1,5 +1,11 @@
 (ocamllex lexer)
 
 (library
+ (public_name kaleidoscope)
  (name kaleidoscope)
- (libraries llvm llvm.analysis llvm.scalar_opts))
+ (libraries
+  llvm
+  llvm.analysis
+  llvm.scalar_opts
+  llvm.target
+  llvm.all_backends))

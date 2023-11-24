@@ -268,19 +268,4 @@ and parse_top_level tokens =
   let e = parse_expr tokens in
   let proto = Ast.Prototype ("", [], None) in
   Ast.Function (proto, e)
-
-(* top ::= definition | external | expression | ';' *)
-and parse_top tokens =
-  match Queue.peek_opt tokens with
-  | Some Token.Eof -> ()
-  | Some Token.Semicolon -> ()
-  | Some Token.Def ->
-    Llvm.dump_value (Codegen.function_codegen (parse_definition tokens));
-    print_endline "Parsed a function definition."
-  | Some Token.Extern ->
-    Llvm.dump_value (Codegen.prototype_codegen (parse_extern tokens));
-    print_endline "Parsed an extern."
-  | _ ->
-    Llvm.dump_value (Codegen.function_codegen (parse_top_level tokens));
-    print_endline "Parsed a top-level expr."
 ;;
