@@ -7,6 +7,7 @@ type t =
   | Else
   | For
   | In
+  | Var
   | Binary
   | Unary
   | Equal
@@ -32,6 +33,7 @@ let string_of_token (token : t) =
   | Else -> "else"
   | For -> "for"
   | In -> "in"
+  | Var -> "var"
   | Binary -> "binary"
   | Unary -> "unary"
   | Equal -> "="

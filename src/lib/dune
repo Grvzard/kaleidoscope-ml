@@ -2,4 +2,4 @@
 
 (library
  (name kaleidoscope)
- (libraries llvm llvm.analysis))
+ (libraries llvm llvm.analysis llvm.scalar_opts))

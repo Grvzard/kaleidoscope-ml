@@ -23,13 +23,14 @@ let binop_of_token token : Op_prec.op_t =
   | Minus -> Op_prec.OpC '-'
   | Star -> Op_prec.OpC '*'
   | Less -> Op_prec.OpC '<'
+  | Equal -> Op_prec.OpC '='
   | _ -> assert false
 ;;
 
 let token_parsing_prec token =
   let open Token in
   match token with
-  | Plus | Minus | Star | Less -> Op_prec.get (binop_of_token token)
+  | Plus | Minus | Star | Less | Equal -> Op_prec.get (binop_of_token token)
   | AnyChar c ->
     (match Op_prec.get (Op_prec.OpC c) with
      | -1 -> raise (ParseFailure (Utils.cat_str_char "Unbound binop: " c))
@@ -65,6 +66,24 @@ and parse_space_separated_ids tokens =
     id :: parse_space_separated_ids tokens
   | _ -> []
 
+and parse_assignments tokens : (string * Ast.expr_ option) list =
+  match Queue.take_opt tokens with
+  | Some (Token.Identifier id) ->
+    let init_ =
+      match Queue.peek_opt tokens with
+      | Some Token.Equal ->
+        ignore (Queue.pop tokens);
+        Some (parse_expr tokens)
+      | _ -> None
+    in
+    let assignment = id, init_ in
+    (match Queue.peek_opt tokens with
+     | Some Token.Comma ->
+       ignore (Queue.pop tokens);
+       assignment :: parse_assignments tokens
+     | _ -> assignment :: [])
+  | _ -> raise (ParseFailure "expected identifier list after var")
+
 (* identifierexpr
    ::= identifier
    ::= identifier '(' (expression (',' expression)* )? ')' *)
@@ -90,7 +109,11 @@ and parse_identifier tokens =
 (* primary
    ::= identifierexpr
    ::= numberexpr
-   ::= parenexpr *)
+   ::= parenexpr
+   ::= ifexpr
+   ::= forexpr
+   ::= varexpr
+*)
 and parse_primary tokens =
   match Queue.peek_opt tokens with
   | Some (Token.Identifier _) -> parse_identifier tokens
@@ -98,6 +121,7 @@ and parse_primary tokens =
   | Some Token.LParen -> parse_paren tokens
   | Some Token.If -> parse_if tokens
   | Some Token.For -> parse_for tokens
+  | Some Token.Var -> parse_var tokens
   | Some t ->
     raise
       (ParseFailure
@@ -173,7 +197,7 @@ and parse_prototype tokens =
          | _ -> Op_prec.default_precedence
        in
        Ast.Prototype (fn_name, parse_params tokens, Some prec)
-     | _ -> raise (ParseFailure "Expected binary operator"))
+     | _ -> raise (ParseFailure "Expected non-builtin binary operator"))
   | Some Token.Unary ->
     (match Queue.take_opt tokens with
      | Some (Token.AnyChar c) ->
@@ -224,6 +248,20 @@ and parse_for tokens =
     let body_ = parse_expr tokens in
     Ast.ForExpr (id, start_, end_, step_, body_)
   | _ -> raise (ParseFailure "expected identifier after for")
+
+(* varexpr ::= 'var' identifier ('=' expression)?
+   (',' identifier ('=' expression)?)*
+   'in' expression
+*)
+and parse_var tokens =
+  consume_token Token.Var tokens;
+  match Queue.peek_opt tokens with
+  | Some (Token.Identifier _) ->
+    let var_pairs = parse_assignments tokens in
+    consume_token Token.In tokens;
+    let body = parse_expr tokens in
+    Ast.VarExpr (var_pairs, body)
+  | _ -> raise (ParseFailure "expected identifier after var")
 
 (* toplevelexpr ::= expression *)
 and parse_top_level tokens =

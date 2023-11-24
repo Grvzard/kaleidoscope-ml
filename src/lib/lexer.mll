@@ -9,6 +9,7 @@
                 "else", Token.Else;
                 "for", Token.For;
                 "in", Token.In;
+                "var", Token.Var;
                 "binary", Token.Binary;
                 "Unary", Token.Unary;
               ]

@@ -8,7 +8,7 @@ let binop_precedence_map : (op_t, int) Hashtbl.t = Hashtbl.create 8
 let () =
   List.iter
     (fun (tok, prec) -> Hashtbl.add binop_precedence_map tok prec)
-    [ OpC '<', 10; OpC '+', 20; OpC '-', 20; OpC '*', 40 ]
+    [ OpC '=', 2; OpC '<', 10; OpC '+', 20; OpC '-', 20; OpC '*', 40 ]
 ;;
 
 let get (op : op_t) =
